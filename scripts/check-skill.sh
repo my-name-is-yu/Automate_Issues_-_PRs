@@ -91,8 +91,26 @@ grep -q 'Do not include merge commands in' "$pr_skill_file" \
   || fail "PR skill must omit merge commands when authority is absent"
 
 merge_cmd='gh pr mer''ge'
-if grep -RIn "$merge_cmd" "$repo_root"; then
-  fail "found hard-coded merge command"
+if grep -RIn "$merge_cmd" "$skill_file"; then
+  fail "implementation skill must not contain merge command"
+fi
+
+grep -q "$merge_cmd <number> --squash --delete-branch" "$pr_skill_file" \
+  || fail "PR skill must output merge command for authorized ready PRs"
+
+grep -q 'Authorized merge commands' "$pr_skill_file" \
+  || fail "PR skill must split authorized merge commands into addendum"
+
+grep -q 'Do not append it to check-only prompts' "$pr_skill_file" \
+  || fail "PR skill must keep merge commands out of check-only prompts"
+
+grep -q 'explicit merge authority for PRs classified `ready-to-merge`' "$pr_skill_file" \
+  || fail "PR skill must define merge-run authority"
+
+grep -q 'merge PRs classified `ready-to-merge`' "$pr_skill_file" \
+  || fail "PR skill must merge ready PRs in merge runs"
+if grep -RIn "$merge_cmd" README.md examples; then
+  fail "README/examples should not hard-code merge execution"
 fi
 
 old_skill="github-issue-autonomy-""planner"

@@ -14,7 +14,8 @@ Use this skill when the user wants:
 - dependency or stack order across multiple PRs
 - CI, review, mergeability, and conflict triage
 - a paste-ready prompt for a separate PR check/merge session
-- merge execution guidance when the user explicitly grants merge authority
+- merge execution for PRs classified `ready-to-merge` when the user explicitly
+  asks for a merge run
 
 ## Core Principle
 
@@ -55,8 +56,10 @@ If rulesets or branch protection cannot be queried, record that gate as
 `unknown` and block merge readiness instead of continuing as if no rules exist.
 
 Determine whether the user explicitly granted merge authority for this run.
-If merge authority is unclear, generated prompts must stop at checks,
-classification, and recommendations.
+Treat requests such as "check and merge these PRs" or "merge the PRs that are
+safe" as explicit merge authority for PRs classified `ready-to-merge`. If merge
+authority is unclear or the user asks only for checking/review, generated
+prompts must stop at checks, classification, and recommendations.
 
 ### 2. Build the PR Candidate Set
 
@@ -186,12 +189,12 @@ The prompt must be paste-ready. Include:
 Use this template and fill in repository-specific details.
 
 ```md
-Check this PR batch for `<REPO>` and merge only if merge authority is explicit
-in this prompt.
+Check this PR batch for `<REPO>`. If merge authority is explicitly granted,
+merge PRs classified `ready-to-merge`.
 
 Repository: <REPO_PATH>
 Default branch: <DEFAULT_BRANCH>
-Merge authority: <explicitly granted | not granted>
+Merge authority: <explicitly granted for ready-to-merge PRs | not granted>
 
 Startup checks:
 - `git fetch origin`
@@ -294,9 +297,12 @@ Merge policy:
 - If merge authority is explicitly granted, merge only PRs classified
   `ready-to-merge`.
 - If merge authority is explicitly granted, add an `Authorized merge commands`
-  section using the repository's normal merge method. If no method is specified
-  and squash merge is allowed, generate one command per ready PR using the
-  repository's squash-merge command.
+  section using the merge-authorized addendum below. Do not include that
+  addendum in check-only prompts.
+- If the repository uses a merge queue, do not direct-merge queued branches.
+  For PRs classified `ready-to-enqueue`, generate the repository's normal
+  enqueue or auto-merge command only when merge authority is explicit and queue
+  requirements are known.
 - After each merge, refresh PR state before evaluating the next PR.
 - If a PR fails checks, has unresolved material reviews, is draft, conflicts,
   or has unknown mergeability, do not merge it.
@@ -308,6 +314,21 @@ Final report:
 - stacked PRs replayed or still waiting
 - follow-up fixes needed
 - decisions needing human judgment
+```
+
+For merge-authorized requests only, append this section to the generated prompt.
+Do not append it to check-only prompts.
+
+```md
+Authorized merge commands:
+- For each PR classified `ready-to-merge`, use the repository's normal merge
+  method.
+- If no merge method is specified and squash merge is allowed, use:
+  `gh pr merge <number> --squash --delete-branch`
+- After each merge, refresh PR state before evaluating the next PR.
+- Do not run any merge command for PRs classified `ready-to-enqueue`,
+  `ready-after-prerequisite`, `needs-rebase-or-retarget`, `needs-review`,
+  `needs-fix`, `blocked`, or `unknown`.
 ```
 
 ## Output Requirements

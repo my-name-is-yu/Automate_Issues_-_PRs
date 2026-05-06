@@ -31,7 +31,8 @@ The PR skill helps a coding agent:
   order, merge queue state, and mergeability
 - treat stacked PR checks as provisional until replayed onto the default branch
 - treat unknown required gates as blocking
-- merge only when merge authority is explicit
+- merge PRs classified `ready-to-merge` when the user explicitly asks for a
+  merge run
 
 ## Install
 
@@ -69,7 +70,7 @@ to prepare a separate PR queue check/merge prompt:
 
 ```text
 Use pr-batch-check-merge-prompt for these PRs. Check CI, reviews, conflicts,
-stack order, and mergeability. Merge only if merge authority is explicit.
+stack order, and mergeability. Merge the PRs that are safe.
 ```
 
 ## Safety Defaults
@@ -81,7 +82,8 @@ authority behind explicit user permission.
 
 By default, implementation prompts tell the session to open ready PRs and
 inspect checks, but not merge. Merge execution is handled by the companion PR
-skill and only when the user explicitly grants merge authority for that run.
+skill. When the user asks that companion skill to merge safe PRs, it should
+produce a prompt that merges only PRs classified `ready-to-merge`.
 
 ## Development
 
